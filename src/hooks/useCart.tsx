@@ -1,7 +1,7 @@
-import { createContext, ReactNode, useContext, useState } from 'react';
-import { toast } from 'react-toastify';
-import { api } from '../services/api';
-import { Product, Stock } from '../types';
+import { createContext, ReactNode, useContext, useState } from "react";
+import { toast } from "react-toastify";
+import { api } from "../services/api";
+import { Product, Stock } from "../types";
 
 interface CartProviderProps {
   children: ReactNode;
@@ -23,20 +23,44 @@ const CartContext = createContext<CartContextData>({} as CartContextData);
 
 export function CartProvider({ children }: CartProviderProps): JSX.Element {
   const [cart, setCart] = useState<Product[]>(() => {
-    // const storagedCart = Buscar dados do localStorage
+    const storagedCart = localStorage.getItem("@RocketShoes:cart");
 
-    // if (storagedCart) {
-    //   return JSON.parse(storagedCart);
-    // }
+    if (storagedCart) {
+      return JSON.parse(storagedCart);
+    }
 
     return [];
   });
 
+  const checkStock = async (
+    productId: number,
+    amount: number
+  ): Promise<boolean> => {
+    const { data: stock } = await api.get<Stock>(`/stock/${productId}`);
+
+    if (amount > stock.amount) {
+      toast.error("Quantidade solicitada fora de estoque");
+      return false;
+    }
+
+    return true;
+  };
+
   const addProduct = async (productId: number) => {
     try {
-      // TODO
+      const amount = 1;
+
+      const inStock = await checkStock(productId, amount);
+
+      if (!inStock) return;
+
+      const { data: product } = await api.get<Product>(
+        `/products/${productId}`
+      );
+
+      setCart([...cart, { ...product, amount }]);
     } catch {
-      // TODO
+      toast.error("Erro na adição do produto");
     }
   };
 
@@ -53,9 +77,19 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
     amount,
   }: UpdateProductAmount) => {
     try {
-      // TODO
+      if (amount <= 0) return;
+
+      const inStock = await checkStock(productId, amount);
+
+      if (!inStock) return;
+
+      const newCart = cart.map((product) =>
+        product.id === productId ? { ...product, amount } : product
+      );
+
+      setCart(newCart);
     } catch {
-      // TODO
+      toast.error("Erro na alteração de quantidade do produto");
     }
   };
 
