@@ -34,7 +34,7 @@ const Home = (): JSX.Element => {
 
   useEffect(() => {
     async function loadProducts() {
-      const { data: products } = await api.get("/products");
+      const { data: products } = await api.get<ProductFormatted[]>("/products");
       setProducts(products);
     }
 
@@ -44,8 +44,11 @@ const Home = (): JSX.Element => {
   function handleAddProduct(id: number) {
     const product = cart.find((product) => product.id === id);
 
-    if (!product) addProduct(id);
-    else updateProductAmount({ productId: id, amount: product.amount + 1 });
+    if (!product) {
+      addProduct(id);
+    } else {
+      updateProductAmount({ productId: id, amount: product.amount + 1 });
+    }
   }
 
   return (
